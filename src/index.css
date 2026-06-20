@@ -1,0 +1,427 @@
+/* EcoMetrics Professional Soft Design System */
+:root {
+  /* Soft Light Theme with Forest Green accents */
+  --bg-main: #f4f6f5;
+  --bg-card: #ffffff;
+  --bg-sidebar: #0a251a;
+  
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --text-light: #9ca3af;
+  
+  --accent-primary: #10b981; /* Neon green active highlight */
+  --accent-dark-green: #065f46;
+  --accent-soft-green: #e6f7f0;
+  --accent-blue: #3b82f6;
+  --accent-soft-blue: #eff6ff;
+  --accent-orange: #f59e0b;
+  --accent-soft-orange: #fef3c7;
+  
+  --border-soft: rgba(0, 0, 0, 0.04);
+  --border-focus: #10b981;
+  
+  --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  
+  /* Neumorphic & Soft shadows */
+  --shadow-card: 0 10px 25px rgba(0, 0, 0, 0.02), 0 2px 4px rgba(0, 0, 0, 0.01);
+  --shadow-neumorphic: inset 0 2px 4px rgba(255, 255, 255, 0.9), 0 8px 20px rgba(0, 0, 0, 0.03);
+}
+
+/* Global Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Headings styling */
+h1, h2, h3, h4 {
+  font-weight: 700;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.15rem; }
+
+/* Grid Layouts */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  background-color: var(--bg-sidebar);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.75rem 1.25rem;
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* Prevents flex items breaking layout */
+}
+
+.top-nav {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--border-soft);
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+}
+
+.content-pane {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Soft Neumorphic / Card Style */
+.soft-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow-card);
+}
+
+.soft-card-inner {
+  background-color: var(--bg-main);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background-color: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--text-main);
+  font-family: var(--font-family);
+  font-size: 0.95rem;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+}
+
+/* Sidebar navigation buttons */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  color: #a3b8cc;
+  font-family: var(--font-family);
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-link.active {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Action Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-family);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: var(--accent-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--accent-dark-green);
+}
+
+.btn-secondary {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  border: 1px solid var(--border-soft);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Category Progress Bars (for Calculator layout) */
+.category-progress {
+  height: 8px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.category-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+
+/* Accessibility Skip-link visually hidden until focused */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 10px;
+  background: var(--accent-primary);
+  color: #ffffff;
+  padding: 8px 16px;
+  z-index: 1000;
+  border-radius: 4px;
+  font-weight: 600;
+  transition: top 0.2s;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 10px;
+}
+
+/* Metrics grid (exactly 4 columns on large displays) */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Premium Dark Landing Page Style Rules */
+.dark-landing {
+  background-color: #070a13;
+  color: #f8fafc;
+  min-height: 100vh;
+  font-family: var(--font-family);
+}
+
+.dark-nav {
+  background-color: rgba(7, 10, 19, 0.9);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.dark-hero {
+  padding: 6rem 0;
+}
+
+.dark-card {
+  background-color: #0d121f;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.dark-card-inner {
+  background-color: #080b14;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.dark-text-muted {
+  color: #94a3b8;
+}
+
+.landing-section {
+  padding: 5.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.landing-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .landing-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.landing-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .landing-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.landing-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .landing-grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .landing-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Nav links styling in landing */
+.landing-nav-link {
+  color: #94a3b8;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--font-family);
+  transition: color 0.2s;
+}
+
+.landing-nav-link:hover {
+  color: #ffffff;
+}
+
+.dark-btn-primary {
+  background-color: #10b981;
+  color: #070a13;
+}
+
+.dark-btn-primary:hover {
+  background-color: #059669;
+}
+
+.dark-btn-secondary {
+  background-color: transparent;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dark-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Centered container with appropriate max-width */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* 60% / 40% Simulator Grid on large viewports */
+.simulator-dashboard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .simulator-dashboard {
+    grid-template-columns: 6fr 4fr;
+  }
+}
+
+/* 2x2 grid for right-side simulator metric cards */
+.simulator-right-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 480px) {
+  .simulator-right-grid {
+    grid-template-columns: 1fr;
+  }
+}
