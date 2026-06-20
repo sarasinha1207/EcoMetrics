@@ -15,8 +15,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+app.use(express.json({ limit: '50kb' }));
 app.use(cookieParser());
+
+// Security: Basic hardened HTTP headers
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  next();
+});
 
 // Encryption Utilities for Stateless Session Cookie (AES-256-GCM)
 const ALGORITHM = 'aes-256-gcm';
@@ -194,8 +204,8 @@ app.post('/api/calendar/sync', async (req, res) => {
     const recurrenceRule = `RRULE:FREQ=WEEKLY;BYDAY=${googleDays.join(',')};COUNT=${totalEventsCount}`;
     
     const event = {
-      summary: `EcoTrace: ${challengeTitle}`,
-      description: `${description}\n\nScheduled automatically via EcoTrace Carbon Platform.`,
+      summary: `EcoMetrics: ${challengeTitle}`,
+      description: `${description}\n\nScheduled automatically via EcoMetrics Carbon Platform.`,
       start: {
         dateTime: startEvent.toISOString(),
         timeZone: 'UTC',
@@ -231,14 +241,18 @@ app.post('/api/ai/coach', async (req, res) => {
   if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({ error: 'Gemini API key is not configured.' });
   }
-  
+
+  // Input validation: prevent oversized payloads from inflating prompt
+  const historyEntries = Array.isArray(history) ? history.slice(0, 5) : [];
+  const safeCalc = currentCalculation && typeof currentCalculation === 'object' ? currentCalculation : {};
+
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const promptText = `
-      You are the EcoTrace AI Carbon Coach, a world-class sustainability expert.
+      You are the EcoMetrics AI Carbon Coach, a world-class sustainability expert.
       Analyze the following carbon footprint profile:
-      - Current Footprint Data: ${JSON.stringify(currentCalculation)}
-      - Historic Logs: ${JSON.stringify(history)}
+      - Current Footprint Data: ${JSON.stringify(safeCalc).slice(0, 2000)}
+      - Historic Logs: ${JSON.stringify(historyEntries).slice(0, 2000)}
       
       Provide a professional, structured carbon analysis.
       Follow these constraints:
@@ -263,7 +277,9 @@ app.post('/api/ai/coach', async (req, res) => {
       contents: promptText,
     });
     
-    res.json({ advice: response.text });
+    // Bug fix: response.text is a method, not a property
+    const adviceText = typeof response.text === 'function' ? response.text() : (response.text || '');
+    res.json({ advice: adviceText });
   } catch (error) {
     console.error('Gemini API Error:', error);
     res.status(500).json({ error: 'Failed to communicate with carbon coach API.' });

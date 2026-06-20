@@ -58,6 +58,16 @@ export default function Dashboard({
   const co2ThisMonthKg = parseFloat(((totalTonnes * 1000) / 12).toFixed(1));
   const dailyAverageKg = parseFloat(((totalTonnes * 1000) / 365).toFixed(1));
 
+  // Compute real month-over-month trend from history
+  const computedTrendPct = (() => {
+    if (history.length < 2) return null;
+    const latest = history[0].total;
+    const previous = history[1].total;
+    if (!previous || previous === 0) return null;
+    const pct = (((latest - previous) / previous) * 100).toFixed(1);
+    return pct;
+  })();
+
   const totalActionsCompleted = dailyActions.filter(a => a.completed).length;
 
   // Custom Line Chart coordinate builder (Emissions Trend)
@@ -126,8 +136,10 @@ export default function Dashboard({
           <div>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>CO2 THIS MONTH</span>
             <p style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0.25rem 0' }}>{co2ThisMonthKg} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}>kg</span></p>
-            <span style={{ fontSize: '0.75rem', color: 'var(--accent-primary)', fontWeight: 600 }}>
-              ↘ -12.4% vs last month
+            <span style={{ fontSize: '0.75rem', color: computedTrendPct !== null ? (Number(computedTrendPct) < 0 ? 'var(--accent-primary)' : 'var(--accent-danger)') : 'var(--text-muted)', fontWeight: 600 }}>
+              {computedTrendPct !== null
+                ? `${Number(computedTrendPct) < 0 ? '' : '+'}${computedTrendPct}% vs previous entry`
+                : 'Log more entries to compare'}
             </span>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--accent-soft-green)', display: 'flex', alignItems: 'center', justifySelf: 'flex-end', justifyContent: 'center' }}>
@@ -141,7 +153,7 @@ export default function Dashboard({
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>DAILY AVERAGE</span>
             <p style={{ fontSize: '1.75rem', fontWeight: 700, margin: '0.25rem 0' }}>{dailyAverageKg} <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-muted)' }}>kg/day</span></p>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>
-              Target: &lt;12.8 kg/day
+              Target: &lt;{((2.0 * 1000) / 365).toFixed(1)} kg/day
             </span>
           </div>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--accent-soft-blue)', display: 'flex', alignItems: 'center', justifySelf: 'flex-end', justifyContent: 'center' }}>

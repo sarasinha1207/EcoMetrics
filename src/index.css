@@ -3,21 +3,30 @@
   /* Soft Light Theme with Forest Green accents */
   --bg-main: #f4f6f5;
   --bg-card: #ffffff;
+  --bg-secondary: #f8faf9;
+  --bg-tertiary: #f0f4f2;
   --bg-sidebar: #0a251a;
   
   --text-main: #1f2937;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
   --text-muted: #6b7280;
   --text-light: #9ca3af;
   
-  --accent-primary: #10b981; /* Neon green active highlight */
+  --accent-primary: #10b981;   /* Emerald green */
+  --accent-teal: #0ea5e9;      /* Sky/teal highlight */
+  --accent-sky: #38bdf8;       /* Lighter sky */
+  --accent-emerald: #10b981;   /* Alias for primary */
   --accent-dark-green: #065f46;
   --accent-soft-green: #e6f7f0;
   --accent-blue: #3b82f6;
   --accent-soft-blue: #eff6ff;
   --accent-orange: #f59e0b;
   --accent-soft-orange: #fef3c7;
+  --accent-danger: #ef4444;
   
   --border-soft: rgba(0, 0, 0, 0.04);
+  --border-light: rgba(0, 0, 0, 0.06);
   --border-focus: #10b981;
   
   --font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
@@ -112,6 +121,21 @@ h3 { font-size: 1.15rem; }
   background-color: var(--bg-main);
   border-radius: 12px;
   padding: 1rem;
+}
+
+/* Glass card style (used in CalendarSync and dark overlays) */
+.glass-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.glass-card:hover {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-tertiary);
 }
 
 /* Form Styles */
@@ -423,5 +447,94 @@ h3 { font-size: 1.15rem; }
 @media (max-width: 480px) {
   .simulator-right-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Dashboard grid layout: used in DailyActions, CalendarSync (3-column: 2 left + 1 right) */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.col-span-1 {
+  grid-column: span 1;
+}
+
+.col-span-2 {
+  grid-column: span 1; /* stacked by default on mobile */
+}
+
+@media (min-width: 900px) {
+  .col-span-2 {
+    grid-column: span 1; /* each spans one column in a 2-col grid */
+  }
+}
+
+/* Accessibility: focus-visible outline for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* AI Markdown content rendering */
+.ai-markdown-content h3 {
+  color: var(--accent-teal);
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1.25rem 0 0.5rem 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.ai-markdown-content p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+
+.ai-markdown-content ul {
+  padding-left: 1.5rem;
+  list-style-type: square;
+  color: var(--text-secondary);
+}
+
+.ai-markdown-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+/* Responsive calculator layout */
+@media (min-width: 900px) {
+  .calculator-layout {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+
+  .calculator-layout .calculator-form {
+    flex: 1;
+  }
+
+  .calculator-layout .calculator-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+  }
+}
+
+/* Print styles */
+@media print {
+  .sidebar, .top-nav, .btn {
+    display: none !important;
+  }
+
+  .content-pane {
+    padding: 0;
   }
 }

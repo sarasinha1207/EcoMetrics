@@ -1,7 +1,7 @@
 // IndexedDB wrapper for local, secure user data storage
 // Provides database operations for calculation logs, habit goals, and user settings
 
-const DB_NAME = 'EcoTraceDB';
+const DB_NAME = 'EcoMetricsDB';
 const DB_VERSION = 1;
 
 /**

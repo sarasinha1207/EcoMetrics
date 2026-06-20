@@ -167,15 +167,21 @@ export default function App() {
       const updatedHistory = await db.getHistory();
       setHistory(updatedHistory);
       
-      // Update streak and XP on logging calculation
+      // Update XP on every saved calculation
       const nextPoints = points + 50;
       setPoints(nextPoints);
       await db.saveSetting('user_xp_points', nextPoints);
       setLevel(Math.floor(nextPoints / 100) + 1);
       
-      const nextStreak = streakDays + 1;
-      setStreakDays(nextStreak);
-      await db.saveSetting('user_streak_days', nextStreak);
+      // Streak: only increment once per calendar day to prevent abuse
+      const todayKey = new Date().toDateString();
+      const lastStreakDay = await db.getSetting('user_streak_last_date');
+      if (lastStreakDay !== todayKey) {
+        const nextStreak = streakDays + 1;
+        setStreakDays(nextStreak);
+        await db.saveSetting('user_streak_days', nextStreak);
+        await db.saveSetting('user_streak_last_date', todayKey);
+      }
 
       setActiveTab('dashboard');
     } catch (err) {
@@ -243,8 +249,8 @@ export default function App() {
 
   // Otherwise, render full authenticated/dashboard shell
   const sidebarUser = user || {
-    name: 'Eco Tracker User',
-    email: 'eco.tracker@gmail.com'
+    name: 'EcoMetrics User',
+    email: 'Track your carbon footprint'
   };
 
   return (

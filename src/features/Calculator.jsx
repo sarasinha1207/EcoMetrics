@@ -93,9 +93,10 @@ export default function Calculator({ initialInputs, onSave }) {
   const shortFlightCo2 = (transit.shortFlightAnnual * EMISSION_FACTORS.transport.shortFlight) / 52;
   const longFlightCo2 = (transit.longFlightAnnual * EMISSION_FACTORS.transport.longFlight) / 52;
   
-  // Apply multipliers for flight seating classes (Business/First class take up more space/emissions)
+  // Apply class multiplier ONLY to flight emissions — car/bus/train unaffected by seating class
   const classMultiplier = transit.seatingClass === 'business' ? 1.5 : transit.seatingClass === 'first' ? 2.5 : 1.0;
-  const totalTransitCo2 = (carPetrolCo2 + carElectricCo2 + busCo2 + trainCo2 + shortFlightCo2 + longFlightCo2) * classMultiplier;
+  const adjustedFlightCo2 = (shortFlightCo2 + longFlightCo2) * classMultiplier;
+  const totalTransitCo2 = carPetrolCo2 + carElectricCo2 + busCo2 + trainCo2 + adjustedFlightCo2;
 
   // 2. Energy (converting monthly values to weekly)
   const elecCo2 = (energy.electricityKwh * EMISSION_FACTORS.housing.electricityKwh) / 4.33;
@@ -489,15 +490,15 @@ export default function Calculator({ initialInputs, onSave }) {
                               className="category-progress-fill" 
                               style={{ 
                                 width: `${currentTotalPercent}%`, 
-                                backgroundColor: runningTotalCo2 > 90 ? 'var(--accent-danger)' : runningTotalCo2 > 32 ? 'var(--accent-orange)' : 'var(--accent-emerald)' 
+                                backgroundColor: runningTotalCo2 > 90 ? 'var(--accent-danger)' : runningTotalCo2 > 38.5 ? 'var(--accent-orange)' : 'var(--accent-emerald)' 
                               }} 
                             />
-                            {/* Target markers */}
-                            <div style={{ position: 'absolute', left: '26%', top: 0, bottom: 0, width: '2px', backgroundColor: '#ffffff', opacity: 0.8 }} title="Safe Target (32kg)" />
-                            <div style={{ position: 'absolute', left: '75%', top: 0, bottom: 0, width: '2px', backgroundColor: '#ffffff', opacity: 0.8 }} title="World Average (90kg)" />
+                            {/* Target markers: 38kg = 2.0t/yr safe target, 90kg = global avg */}
+                            <div style={{ position: 'absolute', left: '42%', top: 0, bottom: 0, width: '2px', backgroundColor: '#ffffff', opacity: 0.8 }} title="Safe Target (38kg/week)" />
+                            <div style={{ position: 'absolute', left: '75%', top: 0, bottom: 0, width: '2px', backgroundColor: '#ffffff', opacity: 0.8 }} title="World Average (90kg/week)" />
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', color: '#a0aec0', marginTop: '0.25rem', fontWeight: 600 }}>
-                            <span style={{ color: 'var(--accent-emerald)' }}>Safe Target: ~32 kg</span>
+                            <span style={{ color: 'var(--accent-emerald)' }}>Safe Target: ~38 kg</span>
                             <span style={{ color: 'var(--accent-danger)' }}>World Avg: ~90 kg</span>
                           </div>
                         </div>

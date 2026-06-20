@@ -101,7 +101,7 @@ export default function DailyActions({
               fontSize: '0.75rem', 
               fontWeight: 700 
             }}>
-              ⭐ {totalCompleted}/5 Done
+              {totalCompleted}/5 Done
             </div>
           </div>
 
@@ -176,7 +176,7 @@ export default function DailyActions({
               fontSize: '0.7rem', 
               fontWeight: 700 
             }}>
-              🏆 100 XP Bonus
+              100 XP Bonus
             </span>
           </div>
           <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-main)', marginBottom: '0.25rem' }}>
@@ -221,7 +221,7 @@ export default function DailyActions({
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.4rem', fontWeight: 600 }}>
-                <span>{points % 100} XP total</span>
+                <span>{points % 100} XP this level</span>
                 <span>{(100 - (points % 100))} XP to Level {level + 1}</span>
               </div>
             </div>
