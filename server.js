@@ -6,8 +6,16 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { google } from 'googleapis';
 import { GoogleGenAI } from '@google/genai';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
+
+// Security: Enforce that SESSION_SECRET is set to a real secret in production
+const FALLBACK_SECRET = 'a_very_secure_fallback_secret_32_bytes_long_for_dev_mode!';
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+  console.error('[FATAL] SESSION_SECRET environment variable is required in production. Server will not start.');
+  process.exit(1);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,21 +26,57 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json({ limit: '50kb' }));
 app.use(cookieParser());
 
-// Security: Basic hardened HTTP headers
+// Security: Hardened HTTP headers including Content Security Policy
 app.use((_req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",  // 'unsafe-inline' needed for Vite HMR in dev
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: https:",
+      "connect-src 'self' https://accounts.google.com",
+      "frame-ancestors 'none'",
+    ].join('; ')
+  );
   next();
+});
+
+// Rate Limiters
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many authentication requests. Please try again later.' },
+});
+
+const calendarLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Calendar sync rate limit exceeded. Please wait before retrying.' },
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'AI coach usage limit reached. Please wait 15 minutes between reports.' },
 });
 
 // Encryption Utilities for Stateless Session Cookie (AES-256-GCM)
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 12;
-// Use fallback for dev environment, but enforce secure secret in production
-const ENCRYPTION_SECRET = process.env.SESSION_SECRET || 'a_very_secure_fallback_secret_32_bytes_long_for_dev_mode!';
+const ENCRYPTION_SECRET = process.env.SESSION_SECRET || FALLBACK_SECRET;
 
 function encrypt(text, secret) {
   const key = crypto.createHash('sha256').update(secret).digest();
@@ -70,7 +114,7 @@ function getOAuthClient() {
 }
 
 // OAuth URL generation
-app.get('/api/auth/google/url', (req, res) => {
+app.get('/api/auth/google/url', authLimiter, (req, res) => {
   try {
     const oauth2Client = getOAuthClient();
     const url = oauth2Client.generateAuthUrl({
@@ -89,7 +133,7 @@ app.get('/api/auth/google/url', (req, res) => {
 });
 
 // OAuth Callback handling
-app.get('/api/auth/google/callback', async (req, res) => {
+app.get('/api/auth/google/callback', authLimiter, async (req, res) => {
   const { code } = req.query;
   if (!code) {
     return res.status(400).send('Authorization code is missing');
@@ -127,7 +171,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 });
 
 // Check auth status
-app.get('/api/auth/status', (req, res) => {
+app.get('/api/auth/status', authLimiter, (req, res) => {
   const ecoSession = req.cookies.eco_session;
   if (!ecoSession) {
     return res.json({ authenticated: false });
@@ -145,13 +189,13 @@ app.get('/api/auth/status', (req, res) => {
 });
 
 // Logout
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', authLimiter, (req, res) => {
   res.clearCookie('eco_session');
   res.json({ success: true });
 });
 
 // Google Calendar sync challenge
-app.post('/api/calendar/sync', async (req, res) => {
+app.post('/api/calendar/sync', calendarLimiter, async (req, res) => {
   const ecoSession = req.cookies.eco_session;
   if (!ecoSession) {
     return res.status(401).json({ error: 'Unauthorized. Please authenticate with Google.' });
@@ -235,7 +279,7 @@ app.post('/api/calendar/sync', async (req, res) => {
 });
 
 // Gemini AI carbon coaching insights
-app.post('/api/ai/coach', async (req, res) => {
+app.post('/api/ai/coach', aiLimiter, async (req, res) => {
   const { history, currentCalculation } = req.body;
   
   if (!process.env.GEMINI_API_KEY) {

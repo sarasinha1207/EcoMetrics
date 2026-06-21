@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Card from '../components/Card';
 import Simulator from './Simulator';
+import TrendChart from '../components/TrendChart';
+import DonutChart from '../components/DonutChart';
+import { getRank } from '../utils/ranks';
 
 // Leaf, Shield, Flame, and Chevron SVGs to recreate icons in reference UI
 const DashboardIcons = {
@@ -59,14 +62,13 @@ export default function Dashboard({
   const dailyAverageKg = parseFloat(((totalTonnes * 1000) / 365).toFixed(1));
 
   // Compute real month-over-month trend from history
-  const computedTrendPct = (() => {
+  const computedTrendPct = useMemo(() => {
     if (history.length < 2) return null;
     const latest = history[0].total;
     const previous = history[1].total;
     if (!previous || previous === 0) return null;
-    const pct = (((latest - previous) / previous) * 100).toFixed(1);
-    return pct;
-  })();
+    return (((latest - previous) / previous) * 100).toFixed(1);
+  }, [history]);
 
   const totalActionsCompleted = dailyActions.filter(a => a.completed).length;
 
@@ -108,22 +110,25 @@ export default function Dashboard({
   const radius = 40;
   const circ = 2 * Math.PI * radius; // ~251.3
   
-  // Legend mappings
-  const categories = [
-    { key: 'housing', label: 'Energy', color: '#6b7280', value: breakdown.housing || 0 },
-    { key: 'food', label: 'Food', color: '#4b5563', value: breakdown.food || 0 },
-    { key: 'shopping', label: 'Shopping', color: '#9ca3af', value: 0.8 }, // Baseline default shopping contribution
+  // Memoized categories for donut chart
+  const categories = useMemo(() => [
+    { key: 'housing',   label: 'Energy',    color: '#6b7280', value: breakdown.housing   || 0 },
+    { key: 'food',      label: 'Food',      color: '#4b5563', value: breakdown.food      || 0 },
+    { key: 'shopping',  label: 'Shopping',  color: '#9ca3af', value: 0.8 },
     { key: 'transport', label: 'Transport', color: '#d1d5db', value: breakdown.transport || 0 },
-    { key: 'waste', label: 'Waste', color: '#1f2937', value: breakdown.waste || 0 }
-  ];
+    { key: 'waste',     label: 'Waste',     color: '#1f2937', value: breakdown.waste     || 0 },
+  ], [breakdown])
 
-  const totalEmissionsVal = categories.reduce((sum, cat) => sum + cat.value, 0);
+  const totalEmissionsVal = useMemo(() => categories.reduce((s, c) => s + c.value, 0), [categories]);
   let cumulativePercent = 0;
 
   // Next level progress computation
   const basePoints = (level - 1) * 100;
   const currentLevelProgress = points - basePoints;
   const percentToNextLevel = Math.min(100, Math.max(0, (currentLevelProgress / 100) * 100));
+
+  // Rank for the sidebar rank card
+  const rank = useMemo(() => getRank(level), [level]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -229,57 +234,9 @@ export default function Dashboard({
             </div>
           </div>
 
-          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-            {/* Custom SVG Line Chart */}
-            <svg viewBox="0 0 600 220" width="100%" height="100%" style={{ overflow: 'visible' }}>
-              {/* Y Axis Grid Lines */}
-              {trend.gridLinesY.map((yVal) => {
-                const yPos = 220 - (40 + (yVal / 380) * 140);
-                return (
-                  <g key={yVal}>
-                    <line x1="50" y1={yPos} x2="550" y2={yPos} stroke="rgba(0, 0, 0, 0.05)" />
-                    <text x="25" y={yPos + 4} fill="var(--text-light)" fontSize="10" textAnchor="middle">
-                      {yVal}
-                    </text>
-                  </g>
-                );
-              })}
-
-              {/* Baseline standard safe mark (Sustainable 2.0 T/yr limit ~ 5.5 kg/day) */}
-              <line x1="50" y1={220 - (40 + (5.5 / 380) * 140)} x2="550" y2={220 - (40 + (5.5 / 380) * 140)} stroke="#ef4444" strokeWidth="1.5" strokeDasharray="3 3" />
-              <text x="300" y={220 - (45 + (5.5 / 380) * 140)} fill="#ef4444" fontSize="9" fontWeight="700" textAnchor="middle">
-                World Average
-              </text>
-
-              {/* Trend Path Line */}
-              {trend.points.length > 1 && (
-                <path
-                  d={trend.pathString}
-                  fill="none"
-                  stroke="var(--accent-primary)"
-                  strokeWidth="2.5"
-                />
-              )}
-
-              {/* Value node points */}
-              {trend.points.map((p, idx) => (
-                <g key={idx}>
-                  <circle cx={p.x} cy={p.y} r="4" fill="#ffffff" stroke="var(--accent-primary)" strokeWidth="2.5" />
-                  {/* Tooltip on last element */}
-                  {idx === trend.points.length - 1 && (
-                    <g>
-                      <rect x={p.x - 40} y={p.y - 45} width="80" height="32" rx="4" fill="#ffffff" stroke="var(--border-soft)" style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.05))' }} />
-                      <text x={p.x} y={p.y - 32} fill="var(--text-muted)" fontSize="8" fontWeight="600" textAnchor="middle">
-                        {p.date}
-                      </text>
-                      <text x={p.x} y={p.y - 20} fill="var(--accent-primary)" fontSize="9" fontWeight="700" textAnchor="middle">
-                        CO2 (kg) : {p.total}
-                      </text>
-                    </g>
-                  )}
-                </g>
-              ))}
-            </svg>
+          {/* TrendChart component replaces inline SVG */}
+          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', minHeight: '180px' }}>
+            <TrendChart history={history} limit={trendDays} />
           </div>
         </Card>
 
@@ -292,46 +249,9 @@ export default function Dashboard({
             Click segments to review detailed logs by category
           </span>
 
+          {/* DonutChart component replaces inline SVG */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1.5rem' }}>
-            {/* SVG circle Donut */}
-            <div style={{ position: 'relative', width: '130px', height: '130px' }}>
-              <svg width="100%" height="100%" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
-                {totalEmissionsVal === 0 ? (
-                  <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth="12" />
-                ) : (
-                  categories.map(cat => {
-                    const percent = cat.value / totalEmissionsVal;
-                    const strokeDash = percent * circ;
-                    const strokeOffset = circ - (cumulativePercent * circ);
-                    cumulativePercent += percent;
-                    if (percent === 0) return null;
-                    return (
-                      <circle
-                        key={cat.key}
-                        cx="50"
-                        cy="50"
-                        r={radius}
-                        fill="none"
-                        stroke={cat.color}
-                        strokeWidth="11"
-                        strokeDasharray={`${strokeDash} ${circ - strokeDash}`}
-                        strokeDashoffset={strokeOffset}
-                      />
-                    );
-                  })
-                )}
-              </svg>
-            </div>
-
-            {/* Grid layout legends matching design */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem 1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {categories.map(cat => (
-                <div key={cat.key} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: cat.color }} />
-                  <span>{cat.label}</span>
-                </div>
-              ))}
-            </div>
+            <DonutChart breakdown={breakdown} />
           </div>
         </Card>
 
@@ -429,7 +349,7 @@ export default function Dashboard({
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <h4 style={{ color: 'var(--accent-primary)', fontSize: '1.1rem', marginBottom: '0.25rem' }}>SEEDLING</h4>
+              <h4 style={{ color: rank.color, fontSize: '1.05rem', marginBottom: '0.25rem', fontWeight: 700 }}>{rank.name.toUpperCase()}</h4>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{points} XP total</span>
             </div>
 

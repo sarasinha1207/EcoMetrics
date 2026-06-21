@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { db } from './utils/db';
 import { calculateTotalFootprint } from './utils/calculations';
+import { computeUnlockedBadges } from './utils/achievements';
 import Card from './components/Card';
+import ErrorBoundary from './components/ErrorBoundary';
+import { getRank } from './utils/ranks';
 
 // Feature Views
 import Calculator from './features/Calculator';
@@ -76,12 +79,17 @@ export default function App() {
 
   // Daily Habits checklist
   const [dailyActions, setDailyActions] = useState([
-    { id: 'bus', text: 'Take the bus instead of car', co2Saved: 1.2, xpGained: 30, completed: false },
-    { id: 'walk', text: 'Walk instead of drive (2km)', co2Saved: 0.4, xpGained: 20, completed: false },
-    { id: 'leftovers', text: 'Finish all leftovers', co2Saved: 0.8, xpGained: 20, completed: false },
-    { id: 'compost', text: 'Compost food waste today', co2Saved: 0.3, xpGained: 15, completed: false },
-    { id: 'wash', text: 'Wash clothes in cold water', co2Saved: 0.3, xpGained: 15, completed: false }
+    { id: 'bus',       text: 'Take the bus instead of car',   co2Saved: 1.2, xpGained: 30, completed: false },
+    { id: 'walk',      text: 'Walk instead of drive (2 km)',  co2Saved: 0.4, xpGained: 20, completed: false },
+    { id: 'leftovers', text: 'Finish all leftovers',          co2Saved: 0.8, xpGained: 20, completed: false },
+    { id: 'compost',   text: 'Compost food waste today',      co2Saved: 0.3, xpGained: 15, completed: false },
+    { id: 'wash',      text: 'Wash clothes in cold water',    co2Saved: 0.3, xpGained: 15, completed: false },
   ]);
+
+  // Persistent bus action counter for Green Commuter badge
+  const [busActionCount, setBusActionCount] = useState(0);
+  // Calendar sync tracker for Calendar Champion badge
+  const [calendarSynced, setCalendarSynced] = useState(false);
 
   // Live global ticker state (ticking up by ~1,166.9 tonnes of CO2 per second)
   const [globalEmissions, setGlobalEmissions] = useState(0);
@@ -140,9 +148,13 @@ export default function App() {
           setLevel(Math.floor(Number(savedPoints) / 100) + 1);
         }
         const savedStreak = await db.getSetting('user_streak_days');
-        if (savedStreak !== null) {
-          setStreakDays(Number(savedStreak));
-        }
+        if (savedStreak !== null) setStreakDays(Number(savedStreak));
+
+        const savedBusCount = await db.getSetting('bus_action_count');
+        if (savedBusCount !== null) setBusActionCount(Number(savedBusCount));
+
+        const savedCalSync = await db.getSetting('calendar_synced');
+        if (savedCalSync) setCalendarSynced(true);
       } catch (err) {
         console.error('Local db fetch failed:', err);
       } finally {
@@ -152,13 +164,13 @@ export default function App() {
     loadLocalData();
   }, []);
 
-  const handleSaveCalculation = async (profileData) => {
+  const handleSaveCalculation = useCallback(async (profileData) => {
     const calculated = calculateTotalFootprint(profileData);
     const newRecord = {
       ...calculated,
       id: Date.now().toString(),
       timestamp: Date.now(),
-      inputs: profileData
+      inputs: profileData,
     };
 
     try {
@@ -166,14 +178,14 @@ export default function App() {
       setCurrentCalc(newRecord);
       const updatedHistory = await db.getHistory();
       setHistory(updatedHistory);
-      
-      // Update XP on every saved calculation
+
+      // XP for every logged calculation
       const nextPoints = points + 50;
       setPoints(nextPoints);
       await db.saveSetting('user_xp_points', nextPoints);
       setLevel(Math.floor(nextPoints / 100) + 1);
-      
-      // Streak: only increment once per calendar day to prevent abuse
+
+      // Streak: only once per calendar day
       const todayKey = new Date().toDateString();
       const lastStreakDay = await db.getSetting('user_streak_last_date');
       if (lastStreakDay !== todayKey) {
@@ -187,42 +199,46 @@ export default function App() {
     } catch (err) {
       console.error('Calculation logging failed:', err);
     }
-  };
+  }, [points, streakDays]);
 
-  // Toggle habit complete
-  const handleToggleAction = async (actionId) => {
+  // Toggle habit complete — useCallback prevents unnecessary re-renders of DailyActions
+  const handleToggleAction = useCallback(async (actionId) => {
     let xpDiff = 0;
+    let isBusAction = false;
     const updated = dailyActions.map(act => {
       if (act.id === actionId) {
         const nextState = !act.completed;
         xpDiff = nextState ? act.xpGained : -act.xpGained;
+        if (act.id === 'bus' && nextState) isBusAction = true;
         return { ...act, completed: nextState };
       }
       return act;
     });
-
     setDailyActions(updated);
-    
-    // Add XP
+
     const nextPoints = Math.max(0, points + xpDiff);
     setPoints(nextPoints);
     setLevel(Math.floor(nextPoints / 100) + 1);
     await db.saveSetting('user_xp_points', nextPoints);
-  };
 
-  const handleLogin = async () => {
+    if (isBusAction) {
+      const newCount = busActionCount + 1;
+      setBusActionCount(newCount);
+      await db.saveSetting('bus_action_count', newCount);
+    }
+  }, [dailyActions, points, busActionCount]);
+
+  const handleLogin = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/google/url');
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
+      if (data.url) window.location.href = data.url;
     } catch (err) {
       console.error('Login URL failed:', err);
     }
-  };
+  }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       setUser(null);
@@ -230,12 +246,28 @@ export default function App() {
     } catch (err) {
       console.error('Logout request failed:', err);
     }
-  };
+  }, []);
 
-  // Calculation total daily co2 saved from actions
-  const totalCo2SavedToday = dailyActions
-    .filter(a => a.completed)
-    .reduce((sum, a) => sum + a.co2Saved, 0);
+  // Mark calendar as synced for achievement tracking
+  const handleCalendarSynced = useCallback(async () => {
+    setCalendarSynced(true);
+    await db.saveSetting('calendar_synced', 'true');
+  }, []);
+
+  // Memoize total daily CO2 saved from completed actions
+  const totalCo2SavedToday = useMemo(
+    () => dailyActions.filter(a => a.completed).reduce((sum, a) => sum + a.co2Saved, 0),
+    [dailyActions]
+  );
+
+  // Memoize achievement badges so they only recompute when inputs change
+  const unlockedBadges = useMemo(
+    () => computeUnlockedBadges({ history, streakDays, busActionCount, calendarSynced }),
+    [history, streakDays, busActionCount, calendarSynced]
+  );
+
+  // Dynamic user rank tier
+  const userRank = useMemo(() => getRank(level), [level]);
 
   // If in landing view, render the premium dark SaaS homepage
   if (activeTab === 'landing') {
@@ -342,7 +374,7 @@ export default function App() {
 
           <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: '10px', padding: '0.75rem', fontSize: '0.8rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-              <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>SEEDLING</span>
+              <span style={{ color: userRank.color, fontWeight: 700 }}>{userRank.name.toUpperCase()}</span>
               <span style={{ color: 'var(--text-light)' }}>Level {level}</span>
             </div>
             <span style={{ color: 'var(--text-light)' }}>Points: {points}</span>
@@ -413,40 +445,47 @@ export default function App() {
           ) : (
             <>
               {activeTab === 'dashboard' && (
-                <Dashboard 
-                  currentCalc={currentCalc} 
-                  history={history} 
-                  dailyActions={dailyActions}
-                  onToggleAction={handleToggleAction}
-                  totalCo2SavedToday={totalCo2SavedToday}
-                  level={level}
-                  points={points}
-                  streakDays={streakDays}
-                  onNavigateToCalc={() => setActiveTab('calculator')}
-                />
+                <ErrorBoundary context="Dashboard">
+                  <Dashboard
+                    currentCalc={currentCalc}
+                    history={history}
+                    dailyActions={dailyActions}
+                    onToggleAction={handleToggleAction}
+                    totalCo2SavedToday={totalCo2SavedToday}
+                    level={level}
+                    points={points}
+                    streakDays={streakDays}
+                    onNavigateToCalc={() => setActiveTab('calculator')}
+                  />
+                </ErrorBoundary>
               )}
               {activeTab === 'calculator' && (
-                <Calculator 
-                  initialInputs={currentCalc?.inputs} 
-                  onSave={handleSaveCalculation} 
-                />
+                <ErrorBoundary context="Carbon Calculator">
+                  <Calculator
+                    initialInputs={currentCalc?.inputs}
+                    onSave={handleSaveCalculation}
+                  />
+                </ErrorBoundary>
               )}
               {activeTab === 'actions' && (
-                <DailyActions 
-                  dailyActions={dailyActions}
-                  onToggleAction={handleToggleAction}
-                  level={level}
-                  points={points}
-                  streakDays={streakDays}
-                  isAuthenticated={!!user}
-                  onAuthenticate={handleLogin}
-                />
+                <ErrorBoundary context="Daily Actions">
+                  <DailyActions
+                    dailyActions={dailyActions}
+                    onToggleAction={handleToggleAction}
+                    level={level}
+                    points={points}
+                    streakDays={streakDays}
+                    isAuthenticated={!!user}
+                    onAuthenticate={handleLogin}
+                    unlockedBadges={unlockedBadges}
+                    onCalendarSynced={handleCalendarSynced}
+                  />
+                </ErrorBoundary>
               )}
               {activeTab === 'coach' && (
-                <AICoach 
-                  currentCalc={currentCalc} 
-                  history={history} 
-                />
+                <ErrorBoundary context="AI Coach">
+                  <AICoach currentCalc={currentCalc} history={history} />
+                </ErrorBoundary>
               )}
               {activeTab === 'profile' && (
                 <div style={{ maxWidth: '600px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -524,14 +563,6 @@ export default function App() {
         </main>
       </div>
 
-      {/* Pulse Keyframe Animation */}
-      <style>{`
-        @keyframes pulse {
-          0% { transform: scale(0.95); opacity: 0.5; }
-          50% { transform: scale(1.05); opacity: 1; }
-          100% { transform: scale(0.95); opacity: 0.5; }
-        }
-      `}</style>
       </div>
     </>
   );

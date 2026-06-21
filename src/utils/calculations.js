@@ -33,6 +33,12 @@ export const EMISSION_FACTORS = {
   // Waste (kg CO2e per kg of waste)
   waste: {
     landfill: 0.5,        // Direct landfill degradation
+  },
+
+  // Shopping (kg CO2e per $ spent)
+  shopping: {
+    clothingSpend: 0.4,
+    electronicsSpend: 0.8,
   }
 };
 
@@ -56,13 +62,16 @@ export function calculateTransportEmissions({
   longFlightKm = 0,
 } = {}) {
   const vehicleFactor = EMISSION_FACTORS.transport[vehicleType] || EMISSION_FACTORS.transport.gasolineVehicle;
-  
-  const drivingCO2 = (Number(drivingKm) || 0) * vehicleFactor;
-  const transitCO2 = (Number(publicTransitKm) || 0) * EMISSION_FACTORS.transport.publicTransitBus;
-  const trainCO2 = (Number(trainKm) || 0) * EMISSION_FACTORS.transport.train;
-  const shortFlightCO2 = (Number(shortFlightKm) || 0) * EMISSION_FACTORS.transport.shortFlight;
-  const longFlightCO2 = (Number(longFlightKm) || 0) * EMISSION_FACTORS.transport.longFlight;
-  
+
+  // Clamp all inputs to non-negative to handle invalid (NaN, negative) user data
+  const clamp = (v) => Math.max(0, Number(v) || 0);
+
+  const drivingCO2     = clamp(drivingKm)      * vehicleFactor;
+  const transitCO2     = clamp(publicTransitKm) * EMISSION_FACTORS.transport.publicTransitBus;
+  const trainCO2       = clamp(trainKm)         * EMISSION_FACTORS.transport.train;
+  const shortFlightCO2 = clamp(shortFlightKm)   * EMISSION_FACTORS.transport.shortFlight;
+  const longFlightCO2  = clamp(longFlightKm)    * EMISSION_FACTORS.transport.longFlight;
+
   const totalKg = drivingCO2 + transitCO2 + trainCO2 + shortFlightCO2 + longFlightCO2;
   return totalKg / 1000; // Convert to metric tonnes
 }
@@ -126,25 +135,45 @@ export function calculateWasteEmissions({
 }
 
 /**
+ * Calculates shopping carbon emissions.
+ * @param {Object} inputs - Shopping activity details
+ * @param {number} inputs.clothingSpend - Monthly clothing spend in USD
+ * @param {number} inputs.electronicsSpend - Monthly electronics spend in USD
+ * @returns {number} Shopping carbon footprint in metric tonnes CO2e per year
+ */
+export function calculateShoppingEmissions({
+  clothingSpend = 0,
+  electronicsSpend = 0,
+} = {}) {
+  const clothingCO2 = (Number(clothingSpend) || 0) * (EMISSION_FACTORS.shopping?.clothingSpend || 0.4);
+  const electronicsCO2 = (Number(electronicsSpend) || 0) * (EMISSION_FACTORS.shopping?.electronicsSpend || 0.8);
+  
+  const annualTotalKg = (clothingCO2 + electronicsCO2) * 12;
+  return annualTotalKg / 1000; // Convert to metric tonnes
+}
+
+/**
  * Aggregates all emission sources.
  * @param {Object} inputs - Combined calculator entries
  * @returns {Object} Total and subcategory emissions in metric tonnes CO2e per year
  */
 export function calculateTotalFootprint(inputs = {}) {
-  const transport = calculateTransportEmissions(inputs.transport);
-  const housing = calculateHousingEmissions(inputs.housing);
-  const food = calculateFoodEmissions(inputs.food);
-  const waste = calculateWasteEmissions(inputs.waste);
+  const transport = parseFloat(calculateTransportEmissions(inputs.transport).toFixed(3));
+  const housing = parseFloat(calculateHousingEmissions(inputs.housing).toFixed(3));
+  const food = parseFloat(calculateFoodEmissions(inputs.food).toFixed(3));
+  const waste = parseFloat(calculateWasteEmissions(inputs.waste).toFixed(3));
+  const shopping = parseFloat(calculateShoppingEmissions(inputs.shopping).toFixed(3));
   
-  const total = transport + housing + food + waste;
+  const total = parseFloat((transport + housing + food + waste + shopping).toFixed(3));
   
   return {
-    total: parseFloat(total.toFixed(3)),
+    total,
     breakdown: {
-      transport: parseFloat(transport.toFixed(3)),
-      housing: parseFloat(housing.toFixed(3)),
-      food: parseFloat(food.toFixed(3)),
-      waste: parseFloat(waste.toFixed(3)),
+      transport,
+      housing,
+      food,
+      waste,
+      shopping,
     }
   };
 }

@@ -72,7 +72,7 @@ export default function Calculator({ initialInputs, onSave }) {
     dietType: 'lowMeat'
   });
 
-  const [shopping, setShopping] = useState({
+  const [shopping, setShopping] = useState(initialInputs?.shopping || {
     clothingSpend: 50,
     electronicsSpend: 100
   });
@@ -137,6 +137,10 @@ export default function Calculator({ initialInputs, onSave }) {
       food: {
         dietType: food.dietType
       },
+      shopping: {
+        clothingSpend: Number(shopping.clothingSpend),
+        electronicsSpend: Number(shopping.electronicsSpend)
+      },
       waste: {
         wasteKg: Number(waste.wasteKg),
         recyclingRate: Number(waste.recyclingRate)
@@ -178,6 +182,7 @@ export default function Calculator({ initialInputs, onSave }) {
                         <button
                           key={tab.key}
                           onClick={() => setActiveTab(tab.key)}
+                          aria-label={`Switch to ${tab.label} tab`}
                           style={{
                             border: 'none',
                             background: activeTab === tab.key ? 'var(--accent-soft-green)' : 'none',
@@ -508,6 +513,7 @@ export default function Calculator({ initialInputs, onSave }) {
                       <button 
                         onClick={handleLogEntry}
                         className="btn btn-primary"
+                        aria-label={`Log ${activeTab} carbon entry`}
                         style={{ 
                           width: '100%', 
                           backgroundColor: 'var(--accent-primary)', 

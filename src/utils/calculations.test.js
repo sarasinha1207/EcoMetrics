@@ -3,6 +3,7 @@ import {
   calculateTransportEmissions,
   calculateHousingEmissions,
   calculateFoodEmissions,
+  calculateShoppingEmissions,
   calculateWasteEmissions,
   calculateTotalFootprint,
   calculateEquivalencies,
@@ -66,6 +67,19 @@ describe('Carbon Footprint Calculation Suite', () => {
     it('should fall back to lowMeat diet if unknown type is given', () => {
       const expected = (EMISSION_FACTORS.diet.lowMeat * 365) / 1000;
       expect(calculateFoodEmissions({ dietType: 'unknown' })).toBe(expected);
+    });
+  });
+
+  describe('Shopping Emissions', () => {
+    it('should correctly compute shopping emissions', () => {
+      const inputs = { clothingSpend: 100, electronicsSpend: 200 };
+      const expected = (100 * EMISSION_FACTORS.shopping.clothingSpend + 200 * EMISSION_FACTORS.shopping.electronicsSpend) * 12 / 1000;
+      expect(calculateShoppingEmissions(inputs)).toBe(expected);
+    });
+
+    it('should return 0 when inputs are 0 or empty', () => {
+      expect(calculateShoppingEmissions()).toBe(0);
+      expect(calculateShoppingEmissions({})).toBe(0);
     });
   });
 
