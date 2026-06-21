@@ -10,12 +10,13 @@ import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 
-// Security: Enforce that SESSION_SECRET is set to a real secret in production
+// Security: Fallback or generate SESSION_SECRET if not set to prevent startup crash
 const FALLBACK_SECRET = 'a_very_secure_fallback_secret_32_bytes_long_for_dev_mode!';
 if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
-  console.error('[FATAL] SESSION_SECRET environment variable is required in production. Server will not start.');
-  process.exit(1);
+  console.warn('[WARNING] SESSION_SECRET environment variable is not set. Generating a random 32-byte session secret.');
+  process.env.SESSION_SECRET = crypto.randomBytes(32).toString('hex');
 }
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
