@@ -38,3 +38,12 @@ lerna-debug.log*
 tmp/
 temp/
 .gemini/
+
+# Testing & Coverage
+coverage/
+.vitest/
+
+# Alternative lockfiles
+yarn.lock
+pnpm-lock.yaml
+yarn-error.log

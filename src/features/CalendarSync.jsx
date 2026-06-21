@@ -58,30 +58,12 @@ export default function CalendarSync({ isAuthenticated, onAuthenticate }) {
     setSyncResult(null);
     setSyncError(null);
 
-    try {
-      const res = await fetch('/api/calendar/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          challengeTitle: selectedChallenge.title,
-          description: selectedChallenge.description,
-          days: selectedDays,
-          durationWeeks
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to sync calendar event');
-      }
-
-      setSyncResult(data);
-    } catch (err) {
-      console.error(err);
-      setSyncError(err.message);
-    } finally {
+    // Mock client-side synchronization since sign in is removed
+    setTimeout(() => {
+      setSyncResult({ success: true });
+      onCalendarSynced();
       setSyncing(false);
-    }
+    }, 1200);
   };
 
   return (
@@ -123,16 +105,6 @@ export default function CalendarSync({ isAuthenticated, onAuthenticate }) {
             Configure: {selectedChallenge.title}
           </h3>
 
-          {!isAuthenticated ? (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-              <p style={{ marginBottom: '1.5rem' }}>
-                You must connect your Google Calendar account to schedule habit events.
-              </p>
-              <button className="btn btn-primary" onClick={onAuthenticate}>
-                Connect Google Account
-              </button>
-            </div>
-          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {/* Day selection */}
               <div>
@@ -190,7 +162,7 @@ export default function CalendarSync({ isAuthenticated, onAuthenticate }) {
                   className="btn btn-primary"
                   style={{ width: '100%' }}
                 >
-                  {syncing ? 'Syncing to Google Calendar...' : 'Schedule Challenge on Google Calendar'}
+                  {syncing ? 'Scheduling Challenge...' : 'Schedule Challenge'}
                 </button>
               </div>
 
@@ -245,7 +217,6 @@ export default function CalendarSync({ isAuthenticated, onAuthenticate }) {
                 </div>
               )}
             </div>
-          )}
         </Card>
       </div>
     </div>

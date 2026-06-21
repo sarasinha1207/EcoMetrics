@@ -382,10 +382,10 @@ export default function App() {
 
           <button 
             className="nav-link" 
-            onClick={user ? handleLogout : () => setActiveTab('landing')} 
+            onClick={() => setActiveTab('landing')} 
             style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#f87171' }}
           >
-            ← Sign Out
+            ← Log Out
           </button>
         </div>
       </aside>
@@ -420,19 +420,9 @@ export default function App() {
               Level {level} ({points} XP)
             </div>
             
-            {user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.name}</span>
-              </div>
-            ) : (
-              <button 
-                className="btn btn-secondary" 
-                onClick={handleLogin}
-                style={{ padding: '0.4rem 1rem', fontSize: '0.8rem', borderColor: 'var(--accent-primary)' }}
-              >
-                Sync Google Calendar
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>EcoMetrics User</span>
+            </div>
           </div>
         </header>
 
